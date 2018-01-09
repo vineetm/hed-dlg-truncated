@@ -29,9 +29,11 @@ __docformat__ = 'restructedtext en'
 __authors__ = ("Chia-Wei Liu", "Iulian Vlad Serban")
 
 from random import randint
-from gensim.models import Word2Vec
+from gensim.models.keyedvectors import KeyedVectors
+
 import numpy as np
 import argparse
+import logging
 
 def greedy_match(fileone, filetwo, w2v):
     res1 = greedy_score(fileone, filetwo, w2v)
@@ -46,7 +48,7 @@ def greedy_score(fileone, filetwo, w2v):
     f2 = open(filetwo, 'r')
     r1 = f1.readlines()
     r2 = f2.readlines()
-    dim = w2v.layer1_size # embedding dimensions
+    dim = w2v.vector_size # embedding dimensions
 
     scores = []
 
@@ -143,7 +145,7 @@ def average(fileone, filetwo, w2v):
     f2 = open(filetwo, 'r')
     r1 = f1.readlines()
     r2 = f2.readlines()
-    dim = w2v.layer1_size # dimension of embeddings
+    dim = w2v.vector_size # dimension of embeddings
 
     scores = []
 
@@ -179,14 +181,16 @@ def average(fileone, filetwo, w2v):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument('ground_truth', help="ground truth text file, one example per line")
     parser.add_argument('predicted', help="predicted text file, one example per line")
     parser.add_argument('embeddings', help="embeddings bin file")
     args = parser.parse_args()
 
-    print "loading embeddings file..."
-    w2v = Word2Vec.load_word2vec_format(args.embeddings, binary=True)
+    print("loading embeddings file...")
+    #w2v = Word2Vec.load_word2vec_format(args.embeddings, binary=True)
+    w2v = KeyedVectors.load_word2vec_format(args.embeddings, binary=True)
 
     r = average(args.ground_truth, args.predicted, w2v)
     print("Embedding Average Score: %f +/- %f ( %f )" %(r[0], r[1], r[2]))
