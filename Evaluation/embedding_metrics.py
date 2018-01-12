@@ -28,7 +28,6 @@ Bootstrapping Dialog Systems with Word Embeddings. G. Forgues, J. Pineau, J. Lar
 __docformat__ = 'restructedtext en'
 __authors__ = ("Chia-Wei Liu", "Iulian Vlad Serban")
 
-from random import randint
 from gensim.models.keyedvectors import KeyedVectors
 
 import numpy as np
@@ -36,11 +35,29 @@ import argparse
 import logging
 
 def greedy_match(fileone, filetwo, w2v):
-    res1 = greedy_score(fileone, filetwo, w2v)
-    res2 = greedy_score(filetwo, fileone, w2v)
+    res1 = greedy_score1(fileone, filetwo, w2v)
+    res2 = greedy_score1(filetwo, fileone, w2v)
     res_sum = (res1 + res2)/2.0
 
     return np.mean(res_sum), 1.96*np.std(res_sum)/float(len(res_sum)), np.std(res_sum)
+
+def greedy_score1(fileone, filetwo, w2v):
+    scores = []
+
+    def get_best_score(token, candidates):
+        return np.max([w2v.similarity(token, c) for c in candidates])
+
+    for index, (line1, line2) in enumerate(zip(open(fileone), open(filetwo))):
+        #Find words which have word embeddings
+        tokens1 = [w for w in line1.strip().split() if w in w2v]
+        tokens2 = [w for w in line2.strip().split() if w in w2v]
+
+        if tokens1 and tokens2:
+            scores.append(np.mean([get_best_score(tokens1, tokens2)]))
+        else:
+            scores.append(0.0)
+
+    return np.asarray(scores)
 
 
 def greedy_score(fileone, filetwo, w2v):
@@ -186,11 +203,15 @@ if __name__ == "__main__":
     parser.add_argument('ground_truth', help="ground truth text file, one example per line")
     parser.add_argument('predicted', help="predicted text file, one example per line")
     parser.add_argument('embeddings', help="embeddings bin file")
+    parser.add_argument('-binary', default=False, action='store_true')
     args = parser.parse_args()
 
     print("loading embeddings file...")
     #w2v = Word2Vec.load_word2vec_format(args.embeddings, binary=True)
-    w2v = KeyedVectors.load_word2vec_format(args.embeddings, binary=True)
+    if args.binary:
+        w2v = KeyedVectors.load_word2vec_format(args.embeddings, binary=True)
+    else:
+        w2v = KeyedVectors.load(args.embeddings)
 
     r = average(args.ground_truth, args.predicted, w2v)
     print("Embedding Average Score: %f +/- %f ( %f )" %(r[0], r[1], r[2]))
