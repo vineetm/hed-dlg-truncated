@@ -55,8 +55,8 @@ def greedy_score(fileone, filetwo, w2v):
     scores = []
 
     for i in range(len(r1)):
-        tokens1 = r1[i].strip().split(" ")
-        tokens2 = r2[i].strip().split(" ")
+        tokens1 = r1[i].strip().lower().split(" ")
+        tokens2 = r2[i].strip().lower().split(" ")
         X= np.zeros((dim,))
         y_count = 0
         x_count = 0
@@ -94,8 +94,8 @@ def extrema_score(fileone, filetwo, w2v):
     scores = []
 
     for i in range(len(r1)):
-        tokens1 = r1[i].strip().split(" ")
-        tokens2 = r2[i].strip().split(" ")
+        tokens1 = r1[i].strip().lower().split(" ")
+        tokens2 = r2[i].strip().lower().split(" ")
         X= []
         for tok in tokens1:
             if tok in w2v:
@@ -152,8 +152,8 @@ def average(fileone, filetwo, w2v):
     scores = []
 
     for i in range(len(r1)):
-        tokens1 = r1[i].strip().split(" ")
-        tokens2 = r2[i].strip().split(" ")
+        tokens1 = r1[i].strip().lower().split(" ")
+        tokens2 = r2[i].strip().lower().split(" ")
         X= np.zeros((dim,))
         for tok in tokens1:
             if tok in w2v:
@@ -185,9 +185,10 @@ def average(fileone, filetwo, w2v):
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument('ground_truth', help="ground truth text file, one example per line")
     parser.add_argument('predicted', help="predicted text file, one example per line")
     parser.add_argument('-embeddings', help="embeddings bin file", default='/u/vineeku6/data/word-vectors/word2vec/GoogleNews-vectors-negative300.bin')
+    parser.add_argument('-ground_truth', help="ground truth text file, one example per line",
+                        default='/u/vineeku6/data/ubuntu/model-outputs/gt.test.response')
 
     args = parser.parse_args()
 
@@ -202,4 +203,3 @@ if __name__ == "__main__":
 
     r = extrema_score(args.ground_truth, args.predicted, w2v)
     print("Extrema Score: %f +/- %f ( %f )" %(r[0], r[1], r[2]))
-
