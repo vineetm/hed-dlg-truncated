@@ -28,6 +28,9 @@ Bootstrapping Dialog Systems with Word Embeddings. G. Forgues, J. Pineau, J. Lar
 __docformat__ = 'restructedtext en'
 __authors__ = ("Chia-Wei Liu", "Iulian Vlad Serban")
 
+from random import randint
+from gensim.models import Word2Vec
+#import gensim.models.keyedvectors as word2vec
 from gensim.models.keyedvectors import KeyedVectors
 
 import numpy as np
@@ -35,29 +38,11 @@ import argparse
 import logging
 
 def greedy_match(fileone, filetwo, w2v):
-    res1 = greedy_score1(fileone, filetwo, w2v)
-    res2 = greedy_score1(filetwo, fileone, w2v)
+    res1 = greedy_score(fileone, filetwo, w2v)
+    res2 = greedy_score(filetwo, fileone, w2v)
     res_sum = (res1 + res2)/2.0
 
     return np.mean(res_sum), 1.96*np.std(res_sum)/float(len(res_sum)), np.std(res_sum)
-
-def greedy_score1(fileone, filetwo, w2v):
-    scores = []
-
-    def get_best_score(token, candidates):
-        return np.max([w2v.similarity(token, c) for c in candidates])
-
-    for index, (line1, line2) in enumerate(zip(open(fileone), open(filetwo))):
-        #Find words which have word embeddings
-        tokens1 = [w for w in line1.strip().split() if w in w2v]
-        tokens2 = [w for w in line2.strip().split() if w in w2v]
-
-        if tokens1 and tokens2:
-            scores.append(np.mean([get_best_score(tokens1, tokens2)]))
-        else:
-            scores.append(0.0)
-
-    return np.asarray(scores)
 
 
 def greedy_score(fileone, filetwo, w2v):
@@ -79,12 +64,12 @@ def greedy_score(fileone, filetwo, w2v):
         Y = np.zeros((dim,1))
         for tok in tokens2:
             if tok in w2v:
-                Y = np.hstack((Y,(w2v[tok].reshape((dim,1)))))
+                Y = np.hstack((Y,(w2v[tok].reshape((dim,1)))/np.linalg.norm(w2v[tok])))
                 y_count += 1
 
         for tok in tokens1:
             if tok in w2v:
-                tmp  = w2v[tok].reshape((1,dim)).dot(Y)
+                tmp  = w2v[tok].reshape((1,dim)).dot(Y)/np.linalg.norm(w2v[tok])
                 o += np.max(tmp)
                 x_count += 1
 
@@ -202,16 +187,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('ground_truth', help="ground truth text file, one example per line")
     parser.add_argument('predicted', help="predicted text file, one example per line")
-    parser.add_argument('embeddings', help="embeddings bin file")
-    parser.add_argument('-binary', default=False, action='store_true')
+    parser.add_argument('-embeddings', help="embeddings bin file", default='/u/vineeku6/data/word-vectors/word2vec/GoogleNews-vectors-negative300.bin')
+
     args = parser.parse_args()
 
     print("loading embeddings file...")
-    #w2v = Word2Vec.load_word2vec_format(args.embeddings, binary=True)
-    if args.binary:
-        w2v = KeyedVectors.load_word2vec_format(args.embeddings, binary=True)
-    else:
-        w2v = KeyedVectors.load(args.embeddings)
+    w2v = KeyedVectors.load_word2vec_format(args.embeddings, binary=True)
 
     r = average(args.ground_truth, args.predicted, w2v)
     print("Embedding Average Score: %f +/- %f ( %f )" %(r[0], r[1], r[2]))
